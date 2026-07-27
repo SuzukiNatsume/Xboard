@@ -82,6 +82,8 @@ class ManageController extends Controller
             'show' => 'nullable|integer',
             'machine_id' => 'nullable|integer',
             'enabled' => 'nullable|boolean',
+            'maintenance_mode' => 'nullable|in:admin,user',
+            'maintenance_user_id' => 'nullable|prohibited_if:maintenance_mode,admin|required_if:maintenance_mode,user|integer|exists:v2_user,id',
         ]);
 
         $server = Server::find($request->id);
@@ -97,6 +99,15 @@ class ManageController extends Controller
         }
         if (array_key_exists('enabled', $params)) {
             $server->enabled = (bool) $params['enabled'];
+        }
+        if (array_key_exists('maintenance_mode', $params)) {
+            $server->maintenance_mode = $params['maintenance_mode'];
+            if ($params['maintenance_mode'] === 'admin') {
+                $server->maintenance_user_id = null;
+            }
+        }
+        if (array_key_exists('maintenance_user_id', $params)) {
+            $server->maintenance_user_id = $params['maintenance_user_id'] ?: null;
         }
 
         if (!$server->save()) {
@@ -227,6 +238,8 @@ class ManageController extends Controller
             'show' => 'nullable|integer|in:0,1',
             'enabled' => 'nullable|boolean',
             'machine_id' => 'nullable|integer',
+            'maintenance_mode' => 'nullable|in:admin,user',
+            'maintenance_user_id' => 'nullable|prohibited_if:maintenance_mode,admin|required_if:maintenance_mode,user|integer|exists:v2_user,id',
         ]);
 
         $ids = $params['ids'];
@@ -243,6 +256,15 @@ class ManageController extends Controller
         }
         if (array_key_exists('machine_id', $params)) {
             $update['machine_id'] = $params['machine_id'] ?: null;
+        }
+        if (array_key_exists('maintenance_mode', $params) && $params['maintenance_mode'] !== null) {
+            $update['maintenance_mode'] = $params['maintenance_mode'];
+            if ($params['maintenance_mode'] === 'admin') {
+                $update['maintenance_user_id'] = null;
+            }
+        }
+        if (array_key_exists('maintenance_user_id', $params)) {
+            $update['maintenance_user_id'] = $params['maintenance_user_id'] ?: null;
         }
 
         if (empty($update)) {
@@ -281,6 +303,13 @@ class ManageController extends Controller
         $copiedServer->code = null;
         $copiedServer->u = 0;
         $copiedServer->d = 0;
+        $copiedServer->maintenance_mode = 'admin';
+        $copiedServer->maintenance_user_id = null;
+        $copiedServer->community_contribution_id = null;
+        $copiedServer->community_token_hash = null;
+        $copiedServer->contribution_next_reset_at = null;
+        $copiedServer->contributor_name = null;
+        $copiedServer->contribution_region = null;
         $copiedServer->save();
 
         return $this->success(true);

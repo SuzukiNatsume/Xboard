@@ -30,25 +30,38 @@ class ServerV2
         $isHandshake = $request->is('*/server/handshake') || $request->is('api/v2/server/handshake');
 
         $request->validate([
-            'token' => [
-                'string', 'required',
-                function ($attribute, $value, $fail) {
-                    if ($value !== admin_setting('server_token')) {
-                        $fail("Invalid {$attribute}");
-                    }
-                },
-            ],
+            'token' => ['string', 'required'],
             'node_id' => $isHandshake ? 'nullable' : 'required',
         ]);
 
         $nodeId = $request->input('node_id');
         if ($nodeId === null || $nodeId === '') {
+            if (!hash_equals((string) admin_setting('server_token'), (string) $request->input('token'))) {
+                throw new ApiException('Invalid token', 401);
+            }
             return;
         }
 
         $serverInfo = ServerService::getServer($nodeId);
         if (!$serverInfo) {
             throw new ApiException('Server does not exist');
+        }
+
+        if (!$serverInfo->enabled) {
+            throw new ApiException('Server is disabled', 403);
+        }
+
+        $providedToken = (string) $request->input('token');
+        $isAdminToken = hash_equals((string) admin_setting('server_token'), $providedToken);
+        if ($serverInfo->maintenance_mode === 'user') {
+            $expectedHash = (string) $serverInfo->getRawOriginal('community_token_hash');
+            $isNodeToken = $expectedHash
+                && hash_equals($expectedHash, hash('sha256', $providedToken));
+            if (!$isAdminToken && !$isNodeToken) {
+                throw new ApiException('Invalid node token', 401);
+            }
+        } elseif (!$isAdminToken) {
+            throw new ApiException('Invalid token', 401);
         }
 
         $request->attributes->set('node_info', $serverInfo);

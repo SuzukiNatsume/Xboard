@@ -6,10 +6,8 @@ use App\Models\User;
 use App\Models\Plan;
 use App\Models\TrafficResetLog;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
-use App\Services\Plugin\HookManager;
 
 /**
  * Service for handling traffic reset.
@@ -33,47 +31,9 @@ class TrafficResetService
    */
   public function performReset(User $user, string $triggerSource = TrafficResetLog::SOURCE_MANUAL): bool
   {
-    try {
-      return DB::transaction(function () use ($user, $triggerSource) {
-        $oldUpload = $user->u ?? 0;
-        $oldDownload = $user->d ?? 0;
-        $oldTotal = $oldUpload + $oldDownload;
-
-        $nextResetTime = $this->calculateNextResetTime($user);
-
-        $user->update([
-          'u' => 0,
-          'd' => 0,
-          'last_reset_at' => time(),
-          'reset_count' => $user->reset_count + 1,
-          'next_reset_at' => $nextResetTime ? $nextResetTime->timestamp : null,
-        ]);
-
-        $this->recordResetLog($user, [
-          'reset_type' => $this->getResetTypeFromPlan($user->plan),
-          'trigger_source' => $triggerSource,
-          'old_upload' => $oldUpload,
-          'old_download' => $oldDownload,
-          'old_total' => $oldTotal,
-          'new_upload' => 0,
-          'new_download' => 0,
-          'new_total' => 0,
-        ]);
-
-        $this->clearUserCache($user);
-        HookManager::call('traffic.reset.after', $user);
-        return true;
-      });
-    } catch (\Exception $e) {
-      Log::error(__('traffic_reset.reset_failed'), [
-        'user_id' => $user->id,
-        'email' => $user->email,
-        'error' => $e->getMessage(),
-        'trigger_source' => $triggerSource,
-      ]);
-
-      return false;
-    }
+    // Community accounts have cumulative usage. No purchase, gift card,
+    // scheduled job, or manual action may clear their consumed traffic.
+    return false;
   }
 
   /**
@@ -81,31 +41,7 @@ class TrafficResetService
    */
   public function calculateNextResetTime(User $user): ?Carbon
   {
-    if (
-      !$user->plan
-      || $user->plan->reset_traffic_method === Plan::RESET_TRAFFIC_NEVER
-      || ($user->plan->reset_traffic_method === Plan::RESET_TRAFFIC_FOLLOW_SYSTEM
-        && (int) admin_setting('reset_traffic_method', Plan::RESET_TRAFFIC_MONTHLY) === Plan::RESET_TRAFFIC_NEVER)
-      || $user->expired_at === NULL
-    ) {
-      return null;
-    }
-
-    $resetMethod = $user->plan->reset_traffic_method;
-
-    if ($resetMethod === Plan::RESET_TRAFFIC_FOLLOW_SYSTEM) {
-      $resetMethod = (int) admin_setting('reset_traffic_method', Plan::RESET_TRAFFIC_MONTHLY);
-    }
-
-    $now = Carbon::now(config('app.timezone'));
-
-    return match ($resetMethod) {
-      Plan::RESET_TRAFFIC_FIRST_DAY_MONTH => $this->getNextMonthFirstDay($now),
-      Plan::RESET_TRAFFIC_MONTHLY => $this->getNextMonthlyReset($user, $now),
-      Plan::RESET_TRAFFIC_FIRST_DAY_YEAR => $this->getNextYearFirstDay($now),
-      Plan::RESET_TRAFFIC_YEARLY => $this->getNextYearlyReset($user, $now),
-      default => null,
-    };
+    return null;
   }
 
   /**
@@ -398,7 +334,7 @@ class TrafficResetService
    */
   public function canReset(User $user): bool
   {
-    return $user->isActive() && $user->plan !== null;
+    return false;
   }
 
   /**

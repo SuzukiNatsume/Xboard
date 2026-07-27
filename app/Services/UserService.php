@@ -11,7 +11,6 @@ use App\Models\Server;
 use App\Models\User;
 use App\Services\Plugin\HookManager;
 use App\Services\TrafficResetService;
-use App\Models\TrafficResetLog;
 use App\Utils\Helper;
 use Illuminate\Support\Facades\Hash;
 
@@ -47,6 +46,7 @@ class UserService
 
     public function isAvailable(User $user)
     {
+        $user = app(CommunityQuotaService::class)->syncAndReset($user);
         if (!$user->banned && $user->transfer_enable && ($user->expired_at > time() || $user->expired_at === NULL)) {
             return true;
         }
@@ -137,7 +137,7 @@ class UserService
     public function getUserTrafficInfo(User $user): array
     {
         // 检查是否需要重置流量
-        app(TrafficResetService::class)->checkAndReset($user, TrafficResetLog::SOURCE_USER_ACCESS);
+        app(CommunityQuotaService::class)->syncAndReset($user);
 
         // 重新获取用户数据（可能已被重置）
         $user->refresh();
@@ -184,6 +184,16 @@ class UserService
         } else {
             $this->setTryOutPlan(user: $user);
         }
+
+        // Community policy overrides plan traffic: new users start as regular
+        // members with a cumulative 10GB cap and no account traffic reset.
+        $user->is_contributor = false;
+        $user->transfer_enable = CommunityQuotaService::REGULAR_QUOTA_GB
+            * CommunityQuotaService::BYTES_PER_GB;
+        $user->next_reset_at = null;
+        $user->community_quota_next_update_at = app(CommunityQuotaService::class)
+            ->nextResetAt()
+            ->timestamp;
 
         return $user;
     }
@@ -249,7 +259,7 @@ class UserService
         }
 
         $user->save();
-        return $user;
+        return app(CommunityQuotaService::class)->syncAndReset($user);
     }
 
     /**

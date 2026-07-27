@@ -32,6 +32,11 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
  * @property array|null $rate_time_ranges 倍率时间范围
  * @property int|null $sort 排序
  * @property array|null $protocol_settings 协议设置
+ * @property string $maintenance_mode 维护归属：admin/user
+ * @property int|null $maintenance_user_id 用户维护者
+ * @property int|null $community_contribution_id 共建资源ID
+ * @property string|null $contributor_name 公开贡献者昵称
+ * @property string|null $contribution_region 贡献节点区域
  * @property int $created_at
  * @property int $updated_at
  * 
@@ -133,7 +138,11 @@ class Server extends Model
         'u' => 'integer',
         'd' => 'integer',
         'machine_id' => 'integer',
+        'maintenance_user_id' => 'integer',
+        'community_contribution_id' => 'integer',
+        'contribution_next_reset_at' => 'timestamp',
     ];
+    protected $hidden = ['community_token_hash'];
 
     private const MULTIPLEX_CONFIGURATION = [
         'multiplex' => [
@@ -425,6 +434,16 @@ class Server extends Model
     public function machine(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(ServerMachine::class, 'machine_id');
+    }
+
+    public function maintainer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'maintenance_user_id');
+    }
+
+    public function communityContribution(): BelongsTo
+    {
+        return $this->belongsTo(CommunityContribution::class, 'community_contribution_id');
     }
 
     public function groups()

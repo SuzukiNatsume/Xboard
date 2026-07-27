@@ -5,6 +5,7 @@ use App\Http\Controllers\V1\Guest\CommController;
 use App\Http\Controllers\V1\Guest\PaymentController;
 use App\Http\Controllers\V1\Guest\PlanController;
 use App\Http\Controllers\V1\Guest\TelegramController;
+use App\Http\Controllers\V1\User\CommunityController;
 use Illuminate\Contracts\Routing\Registrar;
 
 class GuestRoute
@@ -22,6 +23,8 @@ class GuestRoute
             $router->match(['get', 'post'], '/payment/notify/{method}/{uuid}', [PaymentController::class, 'notify']);
             // Comm
             $router->get('/comm/config', [CommController::class, 'config']);
+            // Community (public data only)
+            $router->get('/community/overview', [CommunityController::class, 'overview']);
         });
     }
 }
