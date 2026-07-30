@@ -16,7 +16,14 @@ class Server
     public function handle(Request $request, Closure $next, ?string $nodeType = null)
     {
         $request->validate([
-            'token' => ['string', 'required'],
+            'token' => [
+                'string', 'required',
+                function ($attribute, $value, $fail) {
+                    if ($value !== admin_setting('server_token')) {
+                        $fail("Invalid {$attribute}");
+                    }
+                },
+            ],
             'node_id' => 'required',
             'node_type' => [
                 'nullable',
@@ -41,22 +48,6 @@ class Server
         );
         if (!$serverInfo) {
             throw new ApiException('Server does not exist');
-        }
-        if (!$serverInfo->enabled) {
-            throw new ApiException('Server is disabled', 403);
-        }
-
-        $providedToken = (string) $request->input('token');
-        $isAdminToken = hash_equals((string) admin_setting('server_token'), $providedToken);
-        if ($serverInfo->maintenance_mode === 'user') {
-            $expectedHash = (string) $serverInfo->getRawOriginal('community_token_hash');
-            $isNodeToken = $expectedHash
-                && hash_equals($expectedHash, hash('sha256', $providedToken));
-            if (!$isAdminToken && !$isNodeToken) {
-                throw new ApiException('Invalid node token', 401);
-            }
-        } elseif (!$isAdminToken) {
-            throw new ApiException('Invalid token', 401);
         }
 
         $request->attributes->set('node_info', $serverInfo);

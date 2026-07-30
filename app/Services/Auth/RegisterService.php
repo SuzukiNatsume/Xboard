@@ -25,14 +25,6 @@ class RegisterService
      */
     public function validateRegister(Request $request): array
     {
-        $email = trim((string) $request->input('email'));
-        if (!preg_match('/^[^@\s]+@mails\.ucas\.ac\.cn$/i', $email)) {
-            return [
-                false,
-                [422, __('Registration is limited to @mails.ucas.ac.cn email addresses')]
-            ];
-        }
-
         // 检查IP注册限制
         if ((int) admin_setting('register_limit_by_ip_enable', 0)) {
             $registerCountByIP = Cache::get(CacheKey::get('REGISTER_IP_RATE_LIMIT', $request->ip())) ?? 0;

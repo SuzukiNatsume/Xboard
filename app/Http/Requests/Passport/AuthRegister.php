@@ -14,15 +14,7 @@ class AuthRegister extends FormRequest
     public function rules()
     {
         return [
-            'email' => [
-                'required',
-                'email:strict',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    if (!preg_match('/^[^@\s]+@mails\.ucas\.ac\.cn$/i', trim((string) $value))) {
-                        $fail(__('Registration is limited to @mails.ucas.ac.cn email addresses'));
-                    }
-                },
-            ],
+            'email' => 'required|email:strict',
             'password' => 'required|min:8'
         ];
     }

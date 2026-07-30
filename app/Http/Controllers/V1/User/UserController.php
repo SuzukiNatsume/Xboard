@@ -14,7 +14,6 @@ use App\Services\Auth\LoginService;
 use App\Services\AuthService;
 use App\Services\Plugin\HookManager;
 use App\Services\UserService;
-use App\Services\CommunityQuotaService;
 use App\Utils\CacheKey;
 use App\Utils\Helper;
 use Illuminate\Http\Request;
@@ -88,7 +87,6 @@ class UserController extends Controller
 
     public function info(Request $request)
     {
-        app(CommunityQuotaService::class)->syncAndReset($request->user());
         $user = User::where('id', $request->user()->id)
             ->select([
                 'email',
@@ -105,10 +103,7 @@ class UserController extends Controller
                 'discount',
                 'commission_rate',
                 'telegram_id',
-                'uuid',
-                'is_contributor',
-                'next_reset_at',
-                'community_quota_next_update_at',
+                'uuid'
             ])
             ->first();
         if (!$user) {
@@ -135,7 +130,6 @@ class UserController extends Controller
 
     public function getSubscribe(Request $request)
     {
-        app(CommunityQuotaService::class)->syncAndReset($request->user());
         $user = User::where('id', $request->user()->id)
             ->select([
                 'plan_id',
@@ -148,9 +142,7 @@ class UserController extends Controller
                 'uuid',
                 'device_limit',
                 'speed_limit',
-                'next_reset_at',
-                'is_contributor',
-                'community_quota_next_update_at',
+                'next_reset_at'
             ])
             ->first();
         if (!$user) {

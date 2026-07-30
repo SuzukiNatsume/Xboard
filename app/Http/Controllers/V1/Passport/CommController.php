@@ -26,22 +26,10 @@ class CommController extends Controller
         }
 
         $email = $request->input('email');
-        $isRegisteredEmail = User::byEmail($email)->exists();
-
-        // Existing accounts may still request a code for account recovery.
-        // New addresses are restricted to the community registration domain.
-        if (
-            !$isRegisteredEmail
-            && !preg_match('/^[^@\s]+@mails\.ucas\.ac\.cn$/i', trim((string) $email))
-        ) {
-            return $this->fail([
-                422,
-                __('Registration is limited to @mails.ucas.ac.cn email addresses')
-            ]);
-        }
 
         // 检查白名单后缀限制
         if ((int) admin_setting('email_whitelist_enable', 0)) {
+            $isRegisteredEmail = User::byEmail($email)->exists();
             if (!$isRegisteredEmail) {
                 $allowedSuffixes = Helper::getEmailSuffix();
                 $emailSuffix = substr(strrchr($email, '@'), 1);

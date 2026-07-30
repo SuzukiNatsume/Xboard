@@ -55,33 +55,9 @@ class RegisterServiceTest extends TestCase
 
     public function test_validate_register_accepts_matching_cached_email_code(): void
     {
-        Cache::put(CacheKey::get('EMAIL_VERIFY_CODE', 'user@mails.ucas.ac.cn'), 123456, 300);
+        Cache::put(CacheKey::get('EMAIL_VERIFY_CODE', 'user@example.com'), 123456, 300);
 
         [$success, $result] = $this->service->validateRegister($this->makeRequest([
-            'email_code' => '123456',
-        ]));
-
-        $this->assertTrue($success);
-        $this->assertNull($result);
-    }
-
-    public function test_validate_register_rejects_non_ucas_mail_domain(): void
-    {
-        [$success, $result] = $this->service->validateRegister($this->makeRequest([
-            'email' => 'user@example.com',
-            'email_code' => '123456',
-        ]));
-
-        $this->assertFalse($success);
-        $this->assertSame(422, $result[0]);
-    }
-
-    public function test_validate_register_accepts_case_insensitive_ucas_mail_domain(): void
-    {
-        Cache::put(CacheKey::get('EMAIL_VERIFY_CODE', 'user@MAILS.UCAS.AC.CN'), 123456, 300);
-
-        [$success, $result] = $this->service->validateRegister($this->makeRequest([
-            'email' => 'user@MAILS.UCAS.AC.CN',
             'email_code' => '123456',
         ]));
 
@@ -92,7 +68,7 @@ class RegisterServiceTest extends TestCase
     private function makeRequest(array $overrides = []): Request
     {
         return Request::create('/api/v1/passport/auth/register', 'POST', array_merge([
-            'email' => 'user@mails.ucas.ac.cn',
+            'email' => 'user@example.com',
             'password' => 'password123',
         ], $overrides));
     }

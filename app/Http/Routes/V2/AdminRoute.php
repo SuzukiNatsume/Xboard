@@ -20,7 +20,6 @@ use App\Http\Controllers\V2\Admin\PaymentController;
 use App\Http\Controllers\V2\Admin\SystemController;
 use App\Http\Controllers\V2\Admin\ThemeController;
 use App\Http\Controllers\V2\Admin\TrafficResetController;
-use App\Http\Controllers\V2\Admin\Community\ResourceController as CommunityResourceController;
 use Illuminate\Contracts\Routing\Registrar;
 
 class AdminRoute
@@ -109,15 +108,6 @@ class AdminRoute
                 $router->get('/installCommand', [MachineController::class, 'installCommand']);
                 $router->get('/nodes', [MachineController::class, 'nodes']);
                 $router->get('/history', [MachineController::class, 'history']);
-            });
-
-            // 共建资源审核
-            $router->group([
-                'prefix' => 'community/resource'
-            ], function ($router) {
-                $router->get('/fetch', [CommunityResourceController::class, 'fetch']);
-                $router->get('/{resource}', [CommunityResourceController::class, 'detail']);
-                $router->post('/{resource}/review', [CommunityResourceController::class, 'review']);
             });
 
             // Order

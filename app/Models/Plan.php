@@ -260,7 +260,8 @@ class Plan extends Model
      */
     public function canResetTraffic(): bool
     {
-        return false;
+        return $this->reset_traffic_method !== self::RESET_TRAFFIC_NEVER
+            && $this->getResetTrafficPrice() > 0;
     }
 
     /**

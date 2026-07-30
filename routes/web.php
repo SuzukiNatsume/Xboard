@@ -18,24 +18,8 @@ use Illuminate\Support\Facades\File;
 |
 */
 
-$syncCommunityAssets = static function (): void {
-    $sourceDirectory = base_path('theme/Xboard/assets');
-    $targetDirectory = public_path('theme/Xboard/assets');
-    $assets = ['community-entry.css', 'community.css', 'community.js'];
 
-    File::ensureDirectoryExists($targetDirectory);
-
-    foreach ($assets as $asset) {
-        $source = $sourceDirectory . DIRECTORY_SEPARATOR . $asset;
-        $target = $targetDirectory . DIRECTORY_SEPARATOR . $asset;
-
-        if (File::exists($source) && (!File::exists($target) || File::lastModified($source) > File::lastModified($target))) {
-            File::copy($source, $target);
-        }
-    }
-};
-
-Route::get('/', function (Request $request) use ($syncCommunityAssets) {
+Route::get('/', function (Request $request) {
     if (admin_setting('app_url') && admin_setting('safe_mode_enable', 0)) {
         $requestHost = $request->getHost();
         $configHost = parse_url(admin_setting('app_url'), PHP_URL_HOST);
@@ -70,7 +54,6 @@ Route::get('/', function (Request $request) use ($syncCommunityAssets) {
             }
             Log::info('Theme initialized in public directory', ['theme' => $theme]);
         }
-        $syncCommunityAssets();
 
         $renderParams = [
             'title' => admin_setting('app_name', 'Xboard'),
@@ -89,16 +72,6 @@ Route::get('/', function (Request $request) use ($syncCommunityAssets) {
         abort(500, '主题加载失败');
     }
 });
-
-Route::get('/community', function () use ($syncCommunityAssets) {
-    $syncCommunityAssets();
-
-    return view('theme::Xboard.community', [
-        'title' => admin_setting('app_name', 'Xboard'),
-        'description' => admin_setting('app_description', 'Xboard is best'),
-        'logo' => admin_setting('logo'),
-    ]);
-})->name('community');
 
 //TODO:: 兼容
 Route::get('/' . admin_setting('secure_path', admin_setting('frontend_admin_path', hash('crc32b', config('app.key')))), function () {

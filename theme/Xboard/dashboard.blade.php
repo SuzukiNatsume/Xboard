@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no" />
   <title>{{$title}}</title>
   <script type="module" crossorigin src="/theme/{{$theme}}/assets/umi.js"></script>
-  <link rel="stylesheet" href="/theme/{{$theme}}/assets/community-entry.css" />
 </head>
 
 <body>
@@ -35,10 +34,6 @@
     }
   </script>
   <div id="app"></div>
-  <a class="community-entry" href="/community" aria-label="进入共建社区">
-    <span class="community-entry__pulse"></span>
-    共建社区
-  </a>
   {!! $theme_config['custom_html'] !!}
 </body>
 

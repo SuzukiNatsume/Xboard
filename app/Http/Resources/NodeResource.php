@@ -23,8 +23,7 @@ class NodeResource extends JsonResource
             'tags' => $this['tags'],
             'is_online' => $this['is_online'],
             'cache_key' => $this['cache_key'],
-            'last_check_at' => $this['last_check_at'],
-            'maintenance_mode' => $this['maintenance_mode'] ?? 'admin',
+            'last_check_at' => $this['last_check_at']
         ];
     }
 }

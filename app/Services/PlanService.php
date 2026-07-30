@@ -182,14 +182,13 @@ class PlanService
     {
         return array_filter(
             $plan->getActivePeriods(),
-            fn($period) => $period !== Plan::PERIOD_RESET_TRAFFIC
-                && isset($plan->prices[$period])
-                && $plan->prices[$period] > 0
+            fn($period) => isset($plan->prices[$period]) && $plan->prices[$period] > 0
         );
     }
 
     public function canResetTraffic(Plan $plan): bool
     {
-        return false;
+        return $plan->reset_traffic_method !== Plan::RESET_TRAFFIC_NEVER
+            && $plan->getResetTrafficPrice() > 0;
     }
 }

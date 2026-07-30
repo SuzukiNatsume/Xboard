@@ -47,8 +47,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $created_at
  * @property int $updated_at
  * @property bool $commission_auto_check 是否自动计算佣金
- * @property bool $is_contributor 是否为共建贡献者
- * @property int|null $community_quota_next_update_at 下次共建额度身份更新时间
  *
  * @property-read User|null $invite_user 邀请人信息
  * @property-read \App\Models\Plan|null $plan 用户订阅计划
@@ -77,8 +75,6 @@ class User extends Authenticatable
         'remind_traffic' => 'boolean',
         'commission_auto_check' => 'boolean',
         'commission_rate' => 'float',
-        'is_contributor' => 'boolean',
-        'community_quota_next_update_at' => 'timestamp',
         'next_reset_at' => 'timestamp',
         'last_reset_at' => 'timestamp',
     ];
@@ -142,16 +138,6 @@ class User extends Authenticatable
     public function tickets(): HasMany
     {
         return $this->hasMany(Ticket::class, 'user_id', 'id');
-    }
-
-    public function maintainedServers(): HasMany
-    {
-        return $this->hasMany(Server::class, 'maintenance_user_id');
-    }
-
-    public function communityContributions(): HasMany
-    {
-        return $this->hasMany(CommunityContribution::class, 'user_id');
     }
 
     public function parent(): BelongsTo

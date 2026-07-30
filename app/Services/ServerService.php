@@ -5,14 +5,12 @@ namespace App\Services;
 use App\Models\Server;
 use App\Models\ServerMachine;
 use App\Models\ServerRoute;
-use App\Models\CommunityContribution;
 use App\Models\User;
 use App\Services\Plugin\HookManager;
 use App\Utils\CacheKey;
 use App\Utils\Helper;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class ServerService
 {
@@ -56,7 +54,6 @@ class ServerService
      */
     public static function getAvailableServers(User $user): array
     {
-        app(CommunityQuotaService::class)->resetDueChannels();
         $servers = Server::whereJsonContains('group_ids', (string) $user->group_id)
             ->where('show', true)
             ->where(function ($query) {
@@ -67,8 +64,6 @@ class ServerService
             ->orderBy('sort', 'ASC')
             ->get()
             ->append(['last_check_at', 'last_push_at', 'online', 'is_online', 'available_status', 'cache_key', 'server_key']);
-
-        $servers = self::filterByContributionQuota($servers);
 
         $servers = collect($servers)->map(function ($server) use ($user) {
             // 判断动态端口
@@ -85,47 +80,6 @@ class ServerService
         })->toArray();
 
         return $servers;
-    }
-
-    private static function filterByContributionQuota(Collection $servers): Collection
-    {
-        $contributionIds = $servers
-            ->pluck('community_contribution_id')
-            ->filter()
-            ->unique()
-            ->values();
-
-        if ($contributionIds->isEmpty()) {
-            return $servers;
-        }
-
-        $resources = CommunityContribution::query()
-            ->whereIn('id', $contributionIds)
-            ->get(['id', 'status', 'traffic_limit_gb'])
-            ->keyBy('id');
-        $monthStart = now(config('app.timezone'))->startOfMonth()->timestamp;
-        $usage = DB::table('v2_stat_server as stats')
-            ->join('v2_server as nodes', 'nodes.id', '=', 'stats.server_id')
-            ->whereIn('nodes.community_contribution_id', $contributionIds)
-            ->where('stats.record_type', 'd')
-            ->where('stats.record_at', '>=', $monthStart)
-            ->groupBy('nodes.community_contribution_id')
-            ->selectRaw('nodes.community_contribution_id, SUM(stats.u + stats.d) as used')
-            ->pluck('used', 'community_contribution_id');
-
-        return $servers->filter(function (Server $server) use ($resources, $usage) {
-            if (!$server->community_contribution_id) {
-                return true;
-            }
-
-            $resource = $resources->get($server->community_contribution_id);
-            if (!$resource || $resource->status !== 'active') {
-                return false;
-            }
-
-            $limit = (int) $resource->traffic_limit_gb * CommunityQuotaService::BYTES_PER_GB;
-            return (int) $usage->get($resource->id, 0) < $limit;
-        })->values();
     }
 
     /**

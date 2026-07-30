@@ -49,10 +49,6 @@ class OrderService
         string $period,
         ?string $couponCode = null,
     ): Order {
-        if (PlanService::getPeriodKey($period) === Plan::PERIOD_RESET_TRAFFIC) {
-            throw new ApiException('社区额度在每月 1 日统一更新，不提供额外流量重置。');
-        }
-
         $userService = app(UserService::class);
         $planService = new PlanService($plan);
 
@@ -118,7 +114,7 @@ class OrderService
 
             match ((string) $order->period) {
                 Plan::PERIOD_ONETIME => $this->buyByOneTime($plan),
-                Plan::PERIOD_RESET_TRAFFIC => throw new ApiException('社区额度不支持额外流量重置。'),
+                Plan::PERIOD_RESET_TRAFFIC => app(TrafficResetService::class)->performReset($this->user, TrafficResetLog::SOURCE_ORDER),
                 default => $this->buyByPeriod($order, $plan),
             };
 
@@ -128,7 +124,6 @@ class OrderService
             if (!$this->user->save()) {
                 throw new \RuntimeException('用户信息保存失败');
             }
-            app(CommunityQuotaService::class)->syncAndReset($this->user);
 
             $order->status = Order::STATUS_COMPLETED;
             if (!$order->save()) {
